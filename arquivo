@@ -1,0 +1,464 @@
+from Leila.lib.interface import *
+from datetime import datetime, timedelta
+
+
+def arquivoexiste(nome):
+    try:
+        a = open(nome, 'rt')
+        a.close()
+    except FileNotFoundError:
+        return False
+    else:
+        return True
+
+
+def criararquivo(nome):
+    try:
+        a = open(nome, 'wt+')
+        a.close()
+    except:
+        print('Houve um erro na criação do arquivo!')
+    else:
+        print(f'Arquivo {nome} criado com sucesso!')
+
+
+# clientes
+def cadastro_cliente():
+    escolha = menu3(['Corte', 'Escova', 'Progessiva', 'Luzes', 'Penteado'])
+    if escolha == 1:
+        informacoes(escolha=0)
+    elif escolha == 2:
+        informacoes(escolha=1)
+    elif escolha == 3:
+        informacoes(escolha=2)
+    elif escolha == 4:
+        informacoes(escolha=3)
+    elif escolha == 5:
+        informacoes(escolha=4)
+    else:
+        print('\033[31mERRO! Digite uma opção válida!\033[m')
+
+
+def informacoes(escolha=0):
+    lista = ['Corte', 'Escova', 'Progessiva', 'Luzes', 'Penteado']
+    cabecalho('Muito bem, agora só preciso de algumas informações sua: ')
+    nome = str(input('Nome: '))
+    telefone = int(input('Telefone(ex:14912341234): '))
+    servico = lista[0 + escolha]
+    data_atual = datetime.today().date()
+    while True:
+        data = str(input('Data(ex: DD/MM/AA): '))
+        try:
+            data_agendamento = datetime.strptime(data, '%d/%m/%y').date()
+            if data_agendamento >= data_atual + timedelta(days=2):
+                break
+            else:
+                print('Por favor, escolha uma data para hoje ou posterior.')
+        except ValueError:
+            print('Formato de data inválido. Use o formato DD/MM/AA.')
+    arq = 'clientes.txt'
+    escolha = int(escolha)
+    cadastrar(arq, nome, telefone, servico, data)
+
+
+def cadastrar(arq, nome='desconhecido', telefone=0, servico='Corte', data='05/05/24'):
+    try:
+        a = open(arq, 'at')
+    except:
+        print('Houve um ERRO na abertura do arquivo!')
+    else:
+        novo_agendamento = verificar_e_juntar_agendamentos(nome, telefone, servico,
+                                                           datetime.strptime(data, '%d/%m/%y').date(), arq)
+        if novo_agendamento:
+            print('Foi encontrado um agendamento para o cliente na mesma semana:')
+            print(f'Serviço: {servico} | Data: {data}')
+            escolha = input('Deseja juntar esses agendamentos para o mesmo dia? (s/n): ').lower()
+            if escolha == 's':
+                try:
+                    with open(arq, 'r') as f:
+                        linhas = f.readlines()
+                    with open(arq, 'w') as f:
+                        for linha in linhas:
+                            if not linha.startswith(f"{nome};{telefone}"):
+                                f.write(linha)
+                        f.write(novo_agendamento)
+                    print('Agendamentos juntados com sucesso!')
+                except FileNotFoundError:
+                    print('Arquivo não encontrado!')
+            else:
+                try:
+                    a.write(f'{nome};{telefone};{servico};{data}\n')
+                except:
+                    print('Houve um ERRO na hora de escrever os dados!')
+                else:
+                    print(f'Novo registro de {nome} adicionado!')
+                finally:
+                    a.close()
+        else:
+            try:
+                a.write(f'{nome};{telefone};{servico};{data}\n')
+            except:
+                print('Houve um ERRO na hora de escrever os dados!')
+            else:
+                print(f'Novo registro de {nome} adicionado!')
+            finally:
+                a.close()
+
+
+def alterar_agendamento_cliente(arq):
+    global telefone_informado
+    lerarquivo(arq)
+    cabecalho('ALTERAR AGENDAMENTO')
+    nome = input('Digite seu nome para alterar o serviço ou data: ').strip().title()
+    telefone_confirmado = False
+    while not telefone_confirmado:
+        telefone_informado = input('Por favor, confirme seu número de telefone (ex: 14912341234): ').strip()
+        try:
+            with open(arq, 'r') as f:
+                for linha in f:
+                    dados = linha.strip().split(';')
+                    if dados[0] == nome and dados[1] == telefone_informado:
+                        telefone_confirmado = True
+                        break
+                if not telefone_confirmado:
+                    print('Número de telefone incorreto ou não encontrado. Por favor, tente novamente.')
+        except FileNotFoundError:
+            print('Arquivo não encontrado!')
+    if telefone_confirmado:
+        cabecalho('OPÇÕES DE ALTERAÇÃO')
+        print('1 - Alterar Serviço')
+        print('2 - Alterar Data')
+        print('3 - Alterar Serviço e Data')
+        opcao = leiaint('Escolha a opção desejada: ')
+        if opcao == 1 or opcao == 3:
+            novo_servico = input('Digite o novo serviço: ').strip().capitalize()
+        else:
+            novo_servico = None
+        if opcao == 2 or opcao == 3:
+            data_atual = datetime.today().date()
+            while True:
+                nova_data = str(input('Data(ex: DD/MM/AA): '))
+                try:
+                    data_agendamento = datetime.strptime(nova_data, '%d/%m/%y').date()
+                    if data_agendamento >= data_atual + timedelta(days=2):
+                        break
+                    else:
+                        print('Você só pode alterar agendamentos que ocorram dois dias ou mais à frente da data atual.')
+                except ValueError:
+                    print('Formato de data inválido. Use o formato DD/MM/AA.')
+        else:
+            nova_data = None
+        try:
+            with open(arq, 'r') as f:
+                linhas = f.readlines()
+        except FileNotFoundError:
+            print('Arquivo não encontrado!')
+            return
+        achou = False
+        for i, linha in enumerate(linhas):
+            dados = linha.strip().split(';')
+            if dados[0] == nome and dados[1] == telefone_informado:
+                if novo_servico:
+                    dados[2] = novo_servico
+                if nova_data:
+                    dados[3] = nova_data
+                linhas[i] = ';'.join(dados) + '\n'
+                achou = True
+                print('Agendamento alterado com sucesso!')
+                break
+        if achou:
+            try:
+                with open(arq, 'w') as f:
+                    f.writelines(linhas)
+            except FileNotFoundError:
+                print('Arquivo não encontrado!')
+        else:
+            print('Cliente não encontrado ou número de telefone incorreto.')
+
+
+# usuarios
+def aprovar_agendamento(nome_arquivo):
+    try:
+        with open(nome_arquivo, 'r') as arquivo:
+            aprovados = []
+            with open('usuario.txt', 'r') as usuario_arquivo:
+                for linha in usuario_arquivo:
+                    dados = linha.strip().split(';')
+                    if len(dados) >= 4:
+                        aprovados.append((dados[0], int(dados[1]), dados[2], dados[3]))
+            cabecalho('APROVAÇÃO DE AGENDAMENTOS')
+            for linha in arquivo:
+                dados = linha.strip().split(';')
+                if len(dados) >= 4:
+                    nome = dados[0]
+                    telefone = int(dados[1])
+                    servico = dados[2]
+                    data = dados[3]
+                    if (nome, telefone, servico, data) not in aprovados:
+                        print(f'Cliente {nome} quer fazer o serviço {servico} na data {data}')
+                        while True:
+                            escolha = menu(['Sim', 'Não'])
+                            if escolha == 1:
+                                try:
+                                    with open('clientes.txt', 'r') as clientes_arquivo:
+                                        linhas = clientes_arquivo.readlines()
+                                    with open('clientes.txt', 'w') as clientes_arquivo:
+                                        for linha_atual in linhas:
+                                            dados_atual = linha_atual.strip().split(';')
+                                            if len(dados_atual) >= 4:
+                                                if (dados_atual[0], int(dados_atual[1])) == (nome, telefone):
+                                                    servico = dados[2]
+                                                    data = dados[3]
+                                            clientes_arquivo.write(linha_atual)
+                                except FileNotFoundError:
+                                    pass
+                                try:
+                                    with open('usuario.txt', 'r') as usuario_arquivo:
+                                        linhas = usuario_arquivo.readlines()
+                                    with open('usuario.txt', 'w') as usuario_arquivo:
+                                        for linha_atual in linhas:
+                                            dados_atual = linha_atual.strip().split(';')
+                                            if len(dados_atual) >= 4:
+                                                if (dados_atual[0], int(dados_atual[1])) == (nome, telefone):
+                                                    servico = dados[2]  # Atualiza o serviço
+                                                    data = dados[3]  # Atualiza a data
+                                            usuario_arquivo.write(linha_atual)
+                                except FileNotFoundError:
+                                    pass
+                                try:
+                                    with open('usuario.txt', 'a') as usuario_arquivo:
+                                        usuario_arquivo.write(f'{nome};{telefone};{servico};{data}\n')
+                                    print('Agendamento aprovado!')
+                                except FileNotFoundError:
+                                    print('Arquivo de usuário não encontrado!')
+                                break
+                            elif escolha == 2:
+                                print('Agendamento não aprovado.')
+                                break
+            else:
+                print('Todos os agendamentos já foram aprovados anteriormente.')
+    except FileNotFoundError:
+        print('Arquivo não encontrado!')
+
+
+def verificar_e_juntar_agendamentos(nome, telefone, servico, data, arquivo):
+    with open(arquivo, 'r') as f:
+        for linha in f:
+            dados = linha.strip().split(';')
+            if len(dados) >= 4:
+                nome_existente = dados[0]
+                telefone_existente = int(dados[1])
+                servico_existente = dados[2]
+                data_existente = datetime.strptime(dados[3], '%d/%m/%y').date()
+                if nome == nome_existente and telefone == telefone_existente:
+                    if (data - timedelta(days=data.weekday())) == (data_existente - timedelta(days=data_existente.weekday())):
+                        return f'{nome};{telefone};{servico_existente}+{servico};{data_existente.strftime('%d/%m/%y')}\n'
+    return None
+
+
+# usuarios
+def lerarquivo(nome):
+    try:
+        with open(nome, 'rt') as arquivo:
+            cabecalho('PESSOAS CADASTRADAS')
+            print(f'{'Nome':<30}{'Serviço':>15}{'Data':>20}')
+            for linha in arquivo:
+                dados = linha.strip().split(';')
+                if len(dados) >= 4:
+                    nome = dados[0]
+                    servico = dados[2]
+                    data = dados[3]
+                    dia, mes, ano = map(int, data.split('/'))
+                    data_formatada = f'{dia:02d}/{mes:02d}/{ano:02d}'
+                    print(f'{nome:<30}{servico:<15}{data_formatada:>20}')
+                else:
+                    print('Dados incompletos no arquivo!')
+    except FileNotFoundError:
+        print('Erro ao ler o arquivo!')
+
+
+def alterar_agendamento_usuario(arq):
+    lerarquivo(arq)
+    cabecalho('ALTERAR AGENDAMENTO')
+    nome = input('Digite o nome do cliente para alterar o serviço ou data: ').strip().title()
+    try:
+        with open(arq, 'r') as f:
+            linhas = f.readlines()
+    except FileNotFoundError:
+        print('Arquivo não encontrado!')
+        return
+    found = False
+    for i, linha in enumerate(linhas):
+        dados = linha.strip().split(';')
+        if dados[0] == nome:
+            novo_servico = input(f'Novo serviço para {nome}: ').strip().capitalize()
+            data_atual = datetime.today().date()
+            while True:
+                nova_data = str(input(f'Nova data para {nome} (DD/MM/AA): '))
+                try:
+                    data_agendamento = datetime.strptime(nova_data, '%d/%m/%y').date()
+                    if data_agendamento >= data_atual:
+                        break
+                    else:
+                        print('Por favor, escolha uma data para hoje ou posterior.')
+                except ValueError:
+                    print('Formato de data inválido. Use o formato DD/MM/AA.')
+            if novo_servico:
+                dados[2] = novo_servico
+            if nova_data:
+                dados[3] = nova_data
+            linhas[i] = ';'.join(dados) + '\n'
+            found = True
+            print('Agendamento alterado com sucesso!')
+            break
+    if found:
+        try:
+            with open(arq, 'w') as f:
+                f.writelines(linhas)
+        except FileNotFoundError:
+            print('Arquivo não encontrado!')
+    else:
+        print('Cliente não encontrado.')
+
+
+def aprovar_agendamento_user(nome_arquivo):
+    try:
+        with open(nome_arquivo, 'r') as arquivo:
+            aprovados = []
+            with open('usuario.txt', 'r') as usuario_arquivo:
+                for linha in usuario_arquivo:
+                    dados = linha.strip().split(';')
+                    if len(dados) >= 4:
+                        aprovados.append((dados[0], int(dados[1]), dados[2], dados[3]))
+            cabecalho('APROVAÇÃO DE AGENDAMENTOS')
+            for linha in arquivo:
+                dados = linha.strip().split(';')
+                if len(dados) >= 4:
+                    nome = dados[0]
+                    telefone = int(dados[1])
+                    servico = dados[2]
+                    data = dados[3]
+                    if (nome, telefone, servico, data) not in aprovados:
+                        print(f'Cliente {nome} quer fazer o serviço {servico} na data {data}')
+                        while True:
+                            escolha = menu(['Sim', 'Não'])
+                            if escolha == 1:
+                                try:
+                                    with open('clientes.txt', 'r') as clientes_arquivo:
+                                        linhas = clientes_arquivo.readlines()
+                                    with open('clientes.txt', 'w') as clientes_arquivo:
+                                        for linha_atual in linhas:
+                                            dados_atual = linha_atual.strip().split(';')
+                                            if len(dados_atual) >= 4:
+                                                if (dados_atual[0], int(dados_atual[1])) == (nome, telefone):
+                                                    servico = dados[2]
+                                                    data = dados[3]
+                                            clientes_arquivo.write(linha_atual)
+                                except FileNotFoundError:
+                                    pass
+                                try:
+                                    with open('usuario.txt', 'r') as usuario_arquivo:
+                                        linhas = usuario_arquivo.readlines()
+                                    with open('usuario.txt', 'w') as usuario_arquivo:
+                                        for linha_atual in linhas:
+                                            dados_atual = linha_atual.strip().split(';')
+                                            if len(dados_atual) >= 4:
+                                                if (dados_atual[0], int(dados_atual[1])) == (nome, telefone):
+                                                    servico = dados[2]
+                                                    data = dados[3]
+                                            usuario_arquivo.write(linha_atual)
+                                except FileNotFoundError:
+                                    pass
+                                cadastrar('usuario.txt', nome, telefone, servico, data)
+                                break
+                            elif escolha == 2:
+                                break
+                            else:
+                                print('Por favor, escolha uma opção válida.')
+                    else:
+                        print(f'O agendamento para {nome} já foi aprovado anteriormente.')
+                else:
+                    print('Dados incompletos no arquivo!')
+    except FileNotFoundError:
+        print('Erro ao ler o arquivo!')
+
+
+def agendamentos_futuros(arquivo):
+    hoje = datetime.today().date()
+    cabecalho('AGENDAMENTOS FUTUROS')
+    try:
+        with open(arquivo, 'r') as arquivo_usuario:
+            for linha in arquivo_usuario:
+                dados = linha.strip().split(';')
+                if len(dados) >= 4:
+                    data_agendamento = datetime.strptime(dados[3], '%d/%m/%y').date()
+                    if data_agendamento > hoje:
+                        print(f'{dados[0]:<30}{dados[2]:<15}{dados[3]:>15}')
+    except FileNotFoundError:
+        print('Arquivo não encontrado!')
+
+
+def desempenho_semanal_menu():
+    opcoes = ['Agendamentos Passados', 'Agendamentos Futuros']
+    escolha = menu(opcoes)
+    if escolha == 1:
+        desempenho_semanal_passado()
+    elif escolha == 2:
+        desempenho_semanal_futuro()
+    else:
+        print('\033[31mERRO! Opção inválida.\033[m')
+
+
+def desempenho_semanal_passado():
+    cabecalho('DESEMPENHO SEMANAL - AGENDAMENTOS PASSADOS')
+    hoje = datetime.today().date()
+    try:
+        with open('usuario.txt', 'r') as arquivo_usuario:
+            agendamentos = []
+            for linha in arquivo_usuario:
+                dados = linha.strip().split(';')
+                if len(dados) >= 4:
+                    data_agendamento = datetime.strptime(dados[3], '%d/%m/%y').date()
+                    if data_agendamento < hoje:
+                        semana_inicio = data_agendamento - timedelta(days=data_agendamento.weekday())
+                        if not any(agendamento[0] == semana_inicio for agendamento in agendamentos):
+                            agendamentos.append((semana_inicio, []))
+                        for semana in agendamentos:
+                            if semana[0] == semana_inicio:
+                                semana[1].append((dados[0], dados[2], dados[3]))
+                                break
+            for semana, agendamentos_semana in agendamentos:
+                print(f'Semana({semana.strftime('%d/%m/%y')})')
+                print(f'{len(agendamentos_semana)} Clientes')
+                for cliente, servico, data in agendamentos_semana:
+                    print(f'{cliente:<30}{servico:<15}{data:>15}')
+    except FileNotFoundError:
+        print('Arquivo não encontrado!')
+
+
+def desempenho_semanal_futuro():
+    cabecalho('DESEMPENHO SEMANAL - AGENDAMENTOS FUTUROS')
+    hoje = datetime.today().date()
+    try:
+        with open('usuario.txt', 'r') as arquivo_usuario:
+            agendamentos = []
+            for linha in arquivo_usuario:
+                dados = linha.strip().split(';')
+                if len(dados) >= 4:
+                    data_agendamento = datetime.strptime(dados[3], '%d/%m/%y').date()
+                    if data_agendamento >= hoje:
+                        semana_inicio = data_agendamento - timedelta(days=data_agendamento.weekday())
+                        if not any(agendamento[0] == semana_inicio for agendamento in agendamentos):
+                            agendamentos.append((semana_inicio, []))
+                        for semana in agendamentos:
+                            if semana[0] == semana_inicio:
+                                semana[1].append((dados[0], dados[2], dados[3]))
+                                break
+            agendamentos = sorted(agendamentos, key=lambda x: x[0])
+            for semana, agendamentos_semana in agendamentos:
+                print(f'Semana({semana.strftime('%d/%m/%y')})')
+                print(f'{len(agendamentos_semana)} Clientes')
+                for cliente, servico, data in agendamentos_semana:
+                    print(f'{cliente:<30}{servico:<15}{data:>15}')
+    except FileNotFoundError:
+        print('Arquivo não encontrado!')

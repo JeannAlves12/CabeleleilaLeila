@@ -1,5 +1,6 @@
 # CabeleleilaLeila
-Sistema criado para teste de Dev DSIN
+Sistema criado para teste de Dev DSIN, meu primeiro sistema com poucos dias de experiência na area.
+# Um pouco sobre o sistema:
 # Interface:
 -> def leiaint(txt):
 Essa função pede para o usuário digitar um número inteiro. Se o usuário digitar algo que não seja um número inteiro, ela
@@ -112,5 +113,5 @@ executadas da forma certa, se algo der errado mensagens de erro aparecerão. O m
 usuario(funcionario). Sistema é fechado se opção sair do sistema for selecionada.
 
 
-# coisas que eu adicionaria no sistema com mais tempo: função para adiconar e/ou modificar os tipos de serviços
+coisas que eu adicionaria no sistema com mais tempo: função para adiconar e/ou modificar os tipos de serviços
 oferecidos no salão. Adicionar as horas do atendimento, para melhor controle do dia.

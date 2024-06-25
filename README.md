@@ -1,5 +1,5 @@
 # CabeleleilaLeila
-Sistema criado para teste de Dev DSIN, meu primeiro sistema com poucos dias de experiência na area.
+Sistema criado para teste de Dev DSIN, meu primeiro sistema com poucos dias de experiência na area, feito sómente no pycharm.
 # Um pouco sobre o sistema:
 # Interface:
 -> def leiaint(txt):
